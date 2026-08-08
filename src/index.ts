@@ -18,26 +18,28 @@ app.use(express.json())
 app.all('/api/proxy', async (req, res) => {
   const targetUrl = req.query.url
 
-  // 1. Check if target URL is provided
-  if (!targetUrl) {
+  // 1. Check if target URL is provided and is a valid string
+  if (typeof targetUrl !== 'string') {
     return res.status(400).json({ 
-      error: 'Missing target URL. Usage: /api/proxy?url=https://example.com/api' 
+      error: 'Missing or invalid target URL. Usage: /api/proxy?url=https://example.com/api' 
     })
   }
 
   try {
     // 2. Prepare the request options based on the incoming request
-    const fetchOptions = {
-      method: req.method,
-      headers: {}
-    }
+    const headers: Record<string, string> = {}
 
     // Forward important headers if present
-    if (req.headers['content-type']) {
-      fetchOptions.headers['content-type'] = req.headers['content-type']
+    if (typeof req.headers['content-type'] === 'string') {
+      headers['content-type'] = req.headers['content-type']
     }
-    if (req.headers['authorization']) {
-      fetchOptions.headers['authorization'] = req.headers['authorization']
+    if (typeof req.headers['authorization'] === 'string') {
+      headers['authorization'] = req.headers['authorization']
+    }
+
+    const fetchOptions: RequestInit = {
+      method: req.method,
+      headers
     }
 
     // 3. Attach the body if it's a POST, PUT, or PATCH request
@@ -61,10 +63,11 @@ app.all('/api/proxy', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Proxy Error:', error.message)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error('Proxy Error:', errorMessage)
     res.status(500).json({ 
       error: 'Failed to proxy request', 
-      details: error.message 
+      details: errorMessage
     })
   }
 })
