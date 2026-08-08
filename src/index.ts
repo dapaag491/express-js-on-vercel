@@ -20,8 +20,8 @@ app.all('/api/proxy', async (req, res) => {
 
   // 1. Check if target URL is provided and is a valid string
   if (typeof targetUrl !== 'string') {
-    return res.status(400).json({ 
-      error: 'Missing or invalid target URL. Usage: /api/proxy?url=https://example.com/api' 
+    return res.status(400).json({
+      error: 'Missing or invalid target URL. Usage: /api/proxy?url=https://example.com/api'
     })
   }
 
@@ -35,6 +35,17 @@ app.all('/api/proxy', async (req, res) => {
     }
     if (typeof req.headers['authorization'] === 'string') {
       headers['authorization'] = req.headers['authorization']
+    }
+
+    // Specially handle headers for nseindia.com to prevent blocking
+    if (targetUrl.includes('nseindia.com')) {
+      headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      headers['sec-fetch-site'] = 'same-origin'
+      headers['referer'] = 'https://www.nseindia.com/'
+      headers['accept'] = '*/*'
+      headers['accept-language'] = 'en-US,en;q=0.9'
+    } else if (typeof req.headers['user-agent'] === 'string') {
+      headers['user-agent'] = req.headers['user-agent']
     }
 
     const fetchOptions: RequestInit = {
@@ -65,8 +76,8 @@ app.all('/api/proxy', async (req, res) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     console.error('Proxy Error:', errorMessage)
-    res.status(500).json({ 
-      error: 'Failed to proxy request', 
+    res.status(500).json({
+      error: 'Failed to proxy request',
       details: errorMessage
     })
   }
